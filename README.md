@@ -12,13 +12,15 @@
 ```
 dlt-platform/
 ├── index.html              # 主页面（四个模块），打开即用
-├── data.json               # 最近 120 期真实开奖（兜底数据，最新 26125 / 2026-11-02）
+├── data.json               # 最近 120 期真实开奖（Actions 自动同步，最新 26127 / 2026-11-07）
 ├── manifest.webmanifest    # PWA 配置（可"添加到主屏幕"当 App）
 ├── sw.js                   # 离线缓存
 ├── version.json            # 版本号（改内容时 bump，App 端会提示更新）
 ├── icon-192.png / icon-512.png / icon-maskable-512.png / apple-touch-icon.png
 ├── scripts/gen_icons.py    # 重新生成图标用
-├── dlt_live.py             # 腾讯云函数源码（启用实时开奖用，见下文"二"）
+├── scripts/update_dlt_data.py  # 抓取 500 网 + 同步数据 + 自动 bump 版本号
+├── .github/workflows/update-dlt-data.yml  # 开奖日定时自动同步（GitHub Actions）
+├── dlt_live.py             # 腾讯云函数源码（可选，升级为秒级实时，见下文"二"）
 └── android-app/            # Capacitor 安卓壳（打包 APK 用，见下文"三"）
     ├── build-apk.sh        # 安卓 APK 一键构建脚本（Mac 上运行）
     ├── capacitor.config.json
@@ -88,15 +90,23 @@ git push -u origin main
 5. 等 1 分钟左右刷新页面，顶部会出现一行绿字：`Your site is published at https://jansen889527.github.io/dlt-platform/`
 
 ### 第 5 步：验证
-浏览器打开 `https://jansen889527.github.io/dlt-platform/`，能看到大乐透四个标签页、最新一期 26125 即成功。
+浏览器打开 `https://jansen889527.github.io/dlt-platform/`，能看到大乐透四个标签页、最新一期（如 26127 / 2026-11-07）即成功。
 
-> 此时页面顶部数据源会显示「本地静态数据（与云端同步）」——这是正常的，说明还没部署实时云函数，数据停在 26125。要实时更新见"二"。
+> 页面底部数据源显示「云端同步（开奖后自动更新）」是正常的：数据由 GitHub Actions 在开奖当晚自动从 500 彩票网抓取并推送，**无需任何人手动操作**。想升级成「打开即实时抓取」的秒级实时，见"二"。
 
 ---
 
-## 二、启用实时开奖数据（可选）—— 腾讯云函数
+## 二、开奖数据自动同步（默认已启用）+ 可选的秒级实时
 
-部署后，网页打开即自动拉到最新一期（无需本机常驻服务）。不部署也能用，只是数据停在 26125。
+**默认机制（无需任何操作）**：`.github/workflows/update-dlt-data.yml` 会在开奖日（周一/三/六）北京时间 21:45、22:15、22:45、23:30 各跑一次，每天 10:00 兜底一次。它执行 `scripts/update_dlt_data.py`：
+- 从 500 彩票网抓取最近 120 期真实开奖；
+- 有新一期就更新 `data.json`、内置 `FALLBACK`、三处网页副本；
+- **自动 bump 版本号**（`version.json` / `APP_VERSION` / `sw.js` 缓存名），所以已装 App 的用户点「检查更新」会收到「发现新版本」；
+- 自动 commit + push，GitHub Pages 1~2 分钟后生效。
+
+也可以随时在仓库 `Actions` 页手动点 `Run workflow`，或在本机跑 `python3 scripts/update_dlt_data.py`。
+
+**可选升级成秒级实时（与双色球完全一致）**：部署下面的腾讯云函数后，网页每次打开都直接由服务端实时抓取，不再等定时任务。不部署也完全够用，数据最多滞后到开奖当晚。
 
 1. 浏览器打开 https://console.cloud.tencent.com/scf （腾讯云函数控制台），登录。
 2. 左侧「函数服务」→ `新建` → 创建方式选「空白函数」。
@@ -109,7 +119,7 @@ git push -u origin main
    - 触发方式：`函数 URL`
    - 认证方式：**不认证**
    - 创建后复制「函数 URL」（形如 `https://xxxx.ap-guangzhou.tencentscf.com`）。
-6. 打开本仓库 `index.html`，找到第 434 行：
+6. 打开本仓库 `index.html`，搜索下面这行（约 434 行）：
    ```js
    const DLT_SCF_URL = '';
    ```
@@ -121,7 +131,8 @@ git push -u origin main
    git commit -m "feat: 接入大乐透实时云函数"
    git push
    ```
-8. 再打开网页，数据源会显示「实时（中体彩云端直连）」，且为最新一期。
+8. 再打开网页，数据源会显示「实时（云端直连抓取）」，且为最新一期。**这一步只改网页，不用重装 APK。**
+   > 本机终端推不了 GitHub 时，把函数 URL 发给 WorkBuddy 代改代推即可。
 
 ---
 
@@ -180,12 +191,13 @@ npx cap sync android
 4. **推送**：`git add . && git commit -m "说明" && git push`（终端不通就让 WorkBuddy 走 API 代推）。GitHub Pages 约 1~2 分钟 CDN 刷新后生效。
 5. **用户端**：App 内点「检查更新」→ 弹「发现新版本」→ 点「立即更新」清缓存刷新，即看到最新版。**全程不用重装 APK。**
 
-- 数据更新：未部署云函数时，需手动更新 `data.json`（重新跑抓取脚本生成）；部署云函数后自动实时。
+- **开奖数据不用手动管**：Actions 开奖当晚自动抓取并推送，还会自动 bump 版本号。手动跑 `python3 scripts/update_dlt_data.py` 可立即同步一次。只有改页面代码/样式才需要走上面 5 步。
 - **只有**改 `server.url`、原生图标 / App 名 / 包名 / 权限 / Capacitor 插件时，才需要重新打包并重装 APK。
 
 ## 五、常见问题
 
-- **页面显示"本地静态数据"**：没部署云函数，正常现象，数据停在 26125。按"二"部署后即变实时。
+- **页面显示「云端同步（开奖后自动更新）」**：正常，数据由 GitHub Actions 自动抓取。显示「实时（云端直连抓取）」才是已部署腾讯云函数。
+- **数据没更新 / Actions 跑失败**：到仓库 `Actions` 页看 `大乐透开奖数据自动同步` 的日志；多半是 500 彩票网临时不可达或页面改版，可手动 `Run workflow` 重试。GitHub 对 60 天无提交的公开仓库会暂停定时任务，届时随便推一次代码即可恢复。
 - **推送被拒绝 / 提示 publickey**：按"一·第 3 步"切到 https 地址并改用 Token 登录。
 - **GitHub Pages 打不开**：确认仓库是 Public、Pages 源选的是 `main` 分支 `/root`，且 `index.html` 在仓库根目录。
 - **免责声明**：本工具所有"预测/概率"均为历史统计参考，不构成购彩建议。

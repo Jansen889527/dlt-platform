@@ -1,6 +1,6 @@
 // 大乐透工作台 Service Worker
 // 策略：HTML/导航请求 network-first（保证在线更新即时生效），其余静态资源 cache-first 兜底
-const CACHE = 'dlt-v2';
+const CACHE = 'dlt-v3';
 const ASSETS = [
   './', './index.html', './data.json', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'
