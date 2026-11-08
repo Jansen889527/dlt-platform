@@ -1,0 +1,11 @@
+{
+  "appId": "com.lottery.dlt",
+  "appName": "大乐透选号工具",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "url": "https://jansen889527.github.io/dlt-platform/",
+    "cleartext": false,
+    "allowNavigation": ["jansen889527.github.io"]
+  }
+}

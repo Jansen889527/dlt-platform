@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">大乐透选号工具</string>
+    <string name="title_activity_main">大乐透选号工具</string>
+    <string name="package_name">com.lottery.dlt</string>
+    <string name="custom_url_scheme">com.lottery.dlt</string>
+</resources>

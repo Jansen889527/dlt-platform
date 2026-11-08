@@ -1,0 +1,16 @@
+# 安卓壳构建缓存（本地 npm install 后会生成，勿入库）
+android-app/node_modules/
+android-app/android/.gradle/
+android-app/android/app/build/
+android-app/android/.idea/
+android-app/android/captive_runtime/
+android-app/generated-images/
+
+# 签名密钥配置（含明文密码，仅保存在本机，切勿入库）
+android-app/android/gradle.properties
+*.keystore
+*.jks
+
+# 系统 / 临时
+.DS_Store
+*.log

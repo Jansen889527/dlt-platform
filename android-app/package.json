@@ -1,0 +1,17 @@
+{
+  "name": "lottery-dlt-android",
+  "version": "1.0.0",
+  "description": "大乐透选号工具 - 安卓原生包 (Capacitor 封装)",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync",
+    "build:android": "cap add android && cap sync && cd android && ./gradlew assembleDebug"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/android": "^8.0.0"
+  }
+}

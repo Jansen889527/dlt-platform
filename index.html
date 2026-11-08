@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1565c0">
+<title>大乐透选号工具</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="大乐透工具">
+<style>
+  :root{
+    --primary:#1565c0; --primary-d:#0d47a1;
+    --red:#e53935; --red-d:#b71c1c; --blue:#1565c0; --blue-d:#0d47a1;
+    --bg:#f4f5f7; --card:#fff; --ink:#222; --sub:#8a8f99; --line:#ececf0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;max-width:560px;margin:0 auto;
+    padding-bottom:env(safe-area-inset-bottom);}
+  header{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;padding:calc(16px + env(safe-area-inset-top)) 16px 14px;text-align:center}
+  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:1px}
+  .disclaimer{margin-top:8px;font-size:11px;opacity:.92;background:rgba(0,0,0,.18);border-radius:6px;padding:5px 8px}
+  .tabs{display:flex;position:sticky;top:env(safe-area-inset-top);z-index:5;background:#fff;border-bottom:1px solid var(--line)}
+  .tabs button{flex:1;border:0;background:none;padding:13px 2px;font-size:13.5px;color:var(--sub);font-weight:600;position:relative}
+  .tabs button.active{color:var(--primary)}
+  .tabs button.active::after{content:"";position:absolute;left:22%;right:22%;bottom:0;height:3px;background:var(--primary);border-radius:3px}
+  .tab-panel{display:none;padding:14px;animation:fade .2s}
+  .tab-panel.active{display:block}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:14px}
+  .issue-head{text-align:center;font-size:15px;font-weight:700;margin-bottom:14px}
+  .balls-row{display:flex;flex-wrap:wrap;gap:9px;justify-content:center;align-items:center}
+  .balls-row.big .ball{width:42px;height:42px;font-size:18px}
+  .ball{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:14px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.25)}
+  .ball.red{background:radial-gradient(circle at 30% 28%,#ff7a75,var(--red-d))}
+  .ball.blue{background:radial-gradient(circle at 30% 28%,#5b9bf0,var(--blue-d))}
+  .ball.plus{width:auto;height:auto;background:none;color:var(--sub);box-shadow:none;font-size:18px}
+  .prize{display:flex;gap:12px;justify-content:center;margin-top:16px}
+  .prize>div{flex:1;text-align:center;background:#fafafa;border-radius:10px;padding:10px 6px}
+  .prize .lab{display:block;font-size:12px;color:var(--sub);margin-bottom:4px}
+  .search{display:flex;gap:8px;margin-bottom:12px}
+  .search input{flex:1;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px}
+  .search button{border:0;background:var(--primary);color:#fff;border-radius:9px;padding:0 16px;font-weight:600}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--sub);font-weight:600;background:#fafafa;position:sticky;top:0}
+  .balls-cell{text-align:left}
+  .balls-cell .ball{width:22px;height:22px;font-size:11px;margin:1px}
+  .cnt{text-align:center;color:var(--sub);font-size:12px;margin-top:10px}
+  .reco-title{text-align:center;font-size:14px;color:var(--sub);margin-bottom:10px}
+  .reco-title b{color:var(--primary);font-size:15px}
+  .dims{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dim{background:#fafafa;border-radius:10px;padding:10px}
+  .dim h4{margin:0 0 7px;font-size:12.5px;color:var(--ink);font-weight:700}
+  .dim .v{font-size:13px;color:var(--sub);line-height:1.6}
+  .bar{height:9px;background:#eee;border-radius:5px;overflow:hidden;margin:3px 0}
+  .bar>i{display:block;height:100%;background:var(--primary)}
+  .bar.blue>i{background:var(--blue)}
+  .full{grid-column:1/3}
+  .vote-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12.5px}
+  .vote-row .num{width:24px;text-align:center;font-weight:700}
+  .vote-fill{flex:1;height:9px;background:#eee;border-radius:5px;overflow:hidden}
+  .vote-fill>i{display:block;height:100%;background:linear-gradient(90deg,#7cb3f7,var(--blue))}
+  .warn{background:#fff7e6;border:1px solid #ffe1a8;color:#8a5a00;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px}
+  .err{color:var(--red);text-align:center;padding:20px}
+  .offline-tag{display:inline-block;background:#fff0f0;color:var(--red);font-size:11px;border-radius:5px;padding:2px 7px;margin-left:6px}
+  .loading{text-align:center;color:var(--sub);padding:30px}
+  .pill{display:inline-block;font-size:11px;color:var(--sub);background:#f0f0f3;border-radius:20px;padding:2px 9px;margin:2px}
+  .btn-primary{display:block;width:100%;border:0;background:var(--primary);color:#fff;font-size:15px;font-weight:700;padding:13px;border-radius:12px;margin:14px 0;cursor:pointer}
+  .btn-primary:active{opacity:.85}
+  /* 模块4 随机玩法切换 */
+  .rmodes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 12px}
+  .rmode{border:1px solid var(--line);background:#fff;color:var(--sub);font-size:13px;padding:8px 12px;border-radius:20px;cursor:pointer}
+  .rmode.active{border-color:var(--primary);color:var(--primary);background:#eef4fc;font-weight:700}
+  .ball.dan{box-shadow:0 0 0 2px #f5b50a inset}
+  .grp-sep{width:1px;height:30px;background:var(--line);margin:0 6px;align-self:center}
+  .balls-row.big .grp-sep{height:38px}
+</style>
+</head>
+<body>
+<div id="update-banner" class="update-banner">
+  <span class="ub-text" id="ub-text">发现新版本</span>
+  <span class="ub-btn" id="ub-update">立即更新</span>
+  <span class="ub-close" id="ub-close">×</span>
+</div>
+<header>
+  <h1>大乐透选号工具</h1>
+  <div class="disclaimer">⚠️ 仅供娱乐参考 · 所有推荐均为历史数据统计 · 不构成任何购彩建议</div>
+</header>
+<div id="data-note" class="data-note"></div>
+
+<nav class="tabs">
+  <button data-tab="today" class="active">今期开奖</button>
+  <button data-tab="history">往期开奖</button>
+  <button data-tab="trend">预测走势</button>
+  <button data-tab="random">随机预测</button>
+</nav>
+
+<main>
+  <section id="tab-today" class="tab-panel active">
+    <div id="today-body"><div class="loading">加载中…</div></div>
+    <div class="app-actions">
+      <span class="app-version" id="app-version">当前版本 v2026.11.4</span>
+      <span id="btn-check-update" class="update-btn">检查更新</span>
+    </div>
+  </section>
+
+  <section id="tab-history" class="tab-panel">
+    <div id="history-body"><div class="loading">加载中…</div></div>
+  </section>
+
+  <section id="tab-trend" class="tab-panel">
+    <div id="trend-body"><div class="loading">加载中…</div></div>
+  </section>
+
+  <section id="tab-random" class="tab-panel">
+    <div id="random-body"><div class="loading">加载中…</div></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// 大乐透真实历史开奖数据（最近120期，前区1-35选5、后区1-12选2）
+// 由 scripts/gen_data 流程从公开数据源抓取规范化，字段：{code,date,week,front:[5],back:[2],p1,p2}
+const FALLBACK = [{"code":"26125","date":"2026-11-02","week":"一","front":["12","13","23","25","29"],"back":["07","10"],"p1":{"count":5,"money":7558337},"p2":{"count":93,"money":147578}},{"code":"26124","date":"2026-10-31","week":"六","front":["12","14","18","22","27"],"back":["01","09"],"p1":{"count":6,"money":7695413},"p2":{"count":106,"money":170861}},{"code":"26123","date":"2026-10-28","week":"三","front":["13","18","19","20","28"],"back":["09","11"],"p1":{"count":11,"money":5750462},"p2":{"count":218,"money":47994}},{"code":"26122","date":"2026-10-26","week":"一","front":["02","14","21","22","24"],"back":["02","12"],"p1":{"count":7,"money":7995227},"p2":{"count":86,"money":244856}},{"code":"26121","date":"2026-10-24","week":"六","front":["06","08","19","24","25"],"back":["01","08"],"p1":{"count":6,"money":7741823},"p2":{"count":150,"money":96316}},{"code":"26120","date":"2026-10-21","week":"三","front":["01","06","10","15","32"],"back":["03","04"],"p1":{"count":3,"money":10000000},"p2":{"count":73,"money":303750}},{"code":"26119","date":"2026-10-19","week":"一","front":["03","06","20","24","32"],"back":["04","07"],"p1":{"count":3,"money":9909522},"p2":{"count":82,"money":162664}},{"code":"26118","date":"2026-10-17","week":"六","front":["02","09","21","26","32"],"back":["06","12"],"p1":{"count":2,"money":10000000},"p2":{"count":96,"money":185066}},{"code":"26117","date":"2026-10-14","week":"三","front":["04","13","19","29","31"],"back":["02","12"],"p1":{"count":10,"money":5834813},"p2":{"count":194,"money":53634}},{"code":"26116","date":"2026-10-12","week":"一","front":["09","18","22","25","35"],"back":["01","10"],"p1":{"count":2,"money":10000000},"p2":{"count":76,"money":213000}},{"code":"26115","date":"2026-10-10","week":"六","front":["12","20","32","33","35"],"back":["06","07"],"p1":{"count":10,"money":6339312},"p2":{"count":92,"money":181232}},{"code":"26114","date":"2026-10-07","week":"三","front":["08","12","15","29","30"],"back":["09","12"],"p1":{"count":5,"money":7702634},"p2":{"count":142,"money":85822}},{"code":"26113","date":"2026-10-05","week":"一","front":["02","04","06","10","11"],"back":["01","10"],"p1":{"count":37,"money":2392344},"p2":{"count":363,"money":22428}},{"code":"26112","date":"2026-09-30","week":"三","front":["01","03","05","10","22"],"back":["03","09"],"p1":{"count":6,"money":8047843},"p2":{"count":109,"money":133482}},{"code":"26111","date":"2026-09-28","week":"一","front":["10","11","17","26","29"],"back":["01","03"],"p1":{"count":7,"money":6978221},"p2":{"count":146,"money":97326}},{"code":"26110","date":"2026-09-26","week":"六","front":["03","24","25","26","35"],"back":["07","09"],"p1":{"count":6,"money":7901705},"p2":{"count":118,"money":118598}},{"code":"26109","date":"2026-09-23","week":"三","front":["12","14","16","27","34"],"back":["04","08"],"p1":{"count":1,"money":10000000},"p2":{"count":57,"money":405500}},{"code":"26108","date":"2026-09-21","week":"一","front":["01","05","07","21","35"],"back":["01","04"],"p1":{"count":3,"money":10000000},"p2":{"count":85,"money":320463}},{"code":"26107","date":"2026-09-19","week":"六","front":["02","05","07","14","22"],"back":["04","10"],"p1":{"count":3,"money":10000000},"p2":{"count":77,"money":264830}},{"code":"26106","date":"2026-09-16","week":"三","front":["14","17","21","25","28"],"back":["04","06"],"p1":{"count":3,"money":10000000},"p2":{"count":71,"money":200438}},{"code":"26105","date":"2026-09-14","week":"一","front":["10","14","30","33","34"],"back":["09","12"],"p1":{"count":3,"money":9415460},"p2":{"count":48,"money":339276}},{"code":"26104","date":"2026-09-12","week":"六","front":["01","06","14","15","26"],"back":["08","09"],"p1":{"count":7,"money":6952434},"p2":{"count":110,"money":128072}},{"code":"26103","date":"2026-09-09","week":"三","front":["03","16","17","32","35"],"back":["02","12"],"p1":{"count":3,"money":10000000},"p2":{"count":68,"money":241603}},{"code":"26102","date":"2026-09-07","week":"一","front":["01","03","07","27","28"],"back":["06","07"],"p1":{"count":1,"money":10000000},"p2":{"count":183,"money":57598}},{"code":"26101","date":"2026-09-05","week":"六","front":["09","11","18","26","33"],"back":["09","11"],"p1":{"count":10,"money":5927001},"p2":{"count":167,"money":81242}},{"code":"26100","date":"2026-09-02","week":"三","front":["02","06","11","15","31"],"back":["07","08"],"p1":{"count":6,"money":6733541},"p2":{"count":109,"money":129804}},{"code":"26099","date":"2026-08-31","week":"一","front":["02","17","20","29","33"],"back":["08","09"],"p1":{"count":4,"money":8305500},"p2":{"count":98,"money":144001}},{"code":"26098","date":"2026-08-29","week":"六","front":["07","09","18","19","21"],"back":["02","09"],"p1":{"count":15,"money":5050505},"p2":{"count":211,"money":46996}},{"code":"26097","date":"2026-08-26","week":"三","front":["03","10","12","20","25"],"back":["01","09"],"p1":{"count":7,"money":6840926},"p2":{"count":152,"money":84016}},{"code":"26096","date":"2026-08-24","week":"一","front":["08","09","10","11","25"],"back":["04","12"],"p1":{"count":9,"money":6561952},"p2":{"count":222,"money":57893}},{"code":"26095","date":"2026-08-22","week":"六","front":["04","06","08","10","14"],"back":["04","05"],"p1":{"count":6,"money":7103866},"p2":{"count":200,"money":60688}},{"code":"26094","date":"2026-08-19","week":"三","front":["05","14","15","17","33"],"back":["01","07"],"p1":{"count":3,"money":8380751},"p2":{"count":89,"money":174914}},{"code":"26093","date":"2026-08-17","week":"一","front":["08","10","22","26","29"],"back":["03","10"],"p1":{"count":10,"money":5848781},"p2":{"count":165,"money":48915}},{"code":"26092","date":"2026-08-15","week":"六","front":["12","16","19","29","33"],"back":["07","09"],"p1":{"count":4,"money":9601645},"p2":{"count":97,"money":194094}},{"code":"26091","date":"2026-08-12","week":"三","front":["03","04","07","12","32"],"back":["01","02"],"p1":{"count":3,"money":10000000},"p2":{"count":65,"money":343183}},{"code":"26090","date":"2026-08-10","week":"一","front":["09","14","17","19","24"],"back":["02","09"],"p1":{"count":2,"money":10000000},"p2":{"count":93,"money":155846}},{"code":"26089","date":"2026-08-08","week":"六","front":["03","07","12","14","26"],"back":["05","11"],"p1":{"count":3,"money":9058951},"p2":{"count":150,"money":97508}},{"code":"26088","date":"2026-08-05","week":"三","front":["03","09","11","24","27"],"back":["05","11"],"p1":{"count":2,"money":9662603},"p2":{"count":160,"money":74485}},{"code":"26087","date":"2026-08-03","week":"一","front":["05","10","16","24","27"],"back":["04","10"],"p1":{"count":9,"money":6547013},"p2":{"count":172,"money":82652}},{"code":"26086","date":"2026-08-01","week":"六","front":["10","11","18","22","35"],"back":["06","12"],"p1":{"count":2,"money":10000000},"p2":{"count":121,"money":129265}},{"code":"26085","date":"2026-07-29","week":"三","front":["03","04","14","28","31"],"back":["05","07"],"p1":{"count":2,"money":10000000},"p2":{"count":94,"money":149583}},{"code":"26084","date":"2026-07-27","week":"一","front":["13","25","30","32","33"],"back":["04","05"],"p1":{"count":8,"money":6621689},"p2":{"count":81,"money":153450}},{"code":"26083","date":"2026-07-25","week":"六","front":["14","15","16","23","26"],"back":["07","09"],"p1":{"count":8,"money":7215569},"p2":{"count":135,"money":119029}},{"code":"26082","date":"2026-07-22","week":"三","front":["16","26","27","28","34"],"back":["02","06"],"p1":{"count":5,"money":8286251},"p2":{"count":76,"money":205390}},{"code":"26081","date":"2026-07-20","week":"一","front":["08","16","18","24","34"],"back":["09","12"],"p1":{"count":5,"money":8031396},"p2":{"count":125,"money":110123}},{"code":"26080","date":"2026-07-18","week":"六","front":["05","10","15","21","23"],"back":["07","08"],"p1":{"count":10,"money":6006451},"p2":{"count":173,"money":75312}},{"code":"26079","date":"2026-07-15","week":"三","front":["06","08","23","26","27"],"back":["05","12"],"p1":{"count":5,"money":6673829},"p2":{"count":111,"money":79445}},{"code":"26078","date":"2026-07-13","week":"一","front":["02","13","20","25","32"],"back":["08","11"],"p1":{"count":5,"money":8216073},"p2":{"count":181,"money":70136}},{"code":"26077","date":"2026-07-11","week":"六","front":["04","14","19","24","27"],"back":["06","07"],"p1":{"count":2,"money":9470883},"p2":{"count":141,"money":74426}},{"code":"26076","date":"2026-07-08","week":"三","front":["15","20","27","28","35"],"back":["02","11"],"p1":{"count":4,"money":10000000},"p2":{"count":113,"money":157623}},{"code":"26075","date":"2026-07-06","week":"一","front":["01","06","16","18","26"],"back":["04","10"],"p1":{"count":3,"money":10000000},"p2":{"count":89,"money":173463}},{"code":"26074","date":"2026-07-04","week":"六","front":["01","04","10","23","25"],"back":["01","12"],"p1":{"count":6,"money":7752365},"p2":{"count":115,"money":140052}},{"code":"26073","date":"2026-07-01","week":"三","front":["04","10","22","23","33"],"back":["02","12"],"p1":{"count":6,"money":8427733},"p2":{"count":129,"money":160748}},{"code":"26072","date":"2026-06-29","week":"一","front":["01","13","26","29","30"],"back":["09","11"],"p1":{"count":5,"money":8484040},"p2":{"count":67,"money":301895}},{"code":"26071","date":"2026-06-27","week":"六","front":["05","13","22","26","32"],"back":["02","03"],"p1":{"count":1,"money":10000000},"p2":{"count":179,"money":123704}},{"code":"26070","date":"2026-06-24","week":"三","front":["04","05","15","21","32"],"back":["02","11"],"p1":{"count":1,"money":10000000},"p2":{"count":112,"money":142147}},{"code":"26069","date":"2026-06-22","week":"一","front":["12","19","21","24","29"],"back":["03","10"],"p1":{"count":8,"money":7110906},"p2":{"count":98,"money":201724}},{"code":"26068","date":"2026-06-20","week":"六","front":["03","11","12","21","22"],"back":["06","10"],"p1":{"count":5,"money":7366555},"p2":{"count":212,"money":57893}},{"code":"26067","date":"2026-06-17","week":"三","front":["06","16","18","19","28"],"back":["07","11"],"p1":{"count":6,"money":7300268},"p2":{"count":158,"money":79968}},{"code":"26066","date":"2026-06-15","week":"一","front":["10","13","19","21","30"],"back":["04","05"],"p1":{"count":2,"money":10000000},"p2":{"count":106,"money":194605}},{"code":"26065","date":"2026-06-13","week":"六","front":["04","11","12","13","25"],"back":["04","08"],"p1":{"count":6,"money":7598219},"p2":{"count":189,"money":77875}},{"code":"26064","date":"2026-06-10","week":"三","front":["03","13","15","17","21"],"back":["02","07"],"p1":{"count":4,"money":8286328},"p2":{"count":103,"money":154532}},{"code":"26063","date":"2026-06-08","week":"一","front":["03","15","20","29","31"],"back":["01","12"],"p1":{"count":5,"money":7715951},"p2":{"count":79,"money":274025}},{"code":"26062","date":"2026-06-06","week":"六","front":["07","15","20","24","29"],"back":["04","10"],"p1":{"count":15,"money":5747126},"p2":{"count":304,"money":55984}},{"code":"26061","date":"2026-06-03","week":"三","front":["10","12","26","31","35"],"back":["02","12"],"p1":{"count":4,"money":10000000},"p2":{"count":114,"money":160534}},{"code":"26060","date":"2026-06-01","week":"一","front":["22","28","30","31","34"],"back":["01","05"],"p1":{"count":37,"money":2645502},"p2":{"count":98,"money":319459}},{"code":"26059","date":"2026-05-30","week":"六","front":["06","13","17","19","26"],"back":["07","08"],"p1":{"count":3,"money":10000000},"p2":{"count":269,"money":56494}},{"code":"26058","date":"2026-05-27","week":"三","front":["07","12","13","18","34"],"back":["01","05"],"p1":{"count":5,"money":9961936},"p2":{"count":118,"money":209761}},{"code":"26057","date":"2026-05-25","week":"一","front":["23","25","26","27","34"],"back":["04","10"],"p1":{"count":4,"money":9617059},"p2":{"count":158,"money":113112}},{"code":"26056","date":"2026-05-23","week":"六","front":["06","07","18","21","30"],"back":["01","05"],"p1":{"count":6,"money":7155614},"p2":{"count":151,"money":114339}},{"code":"26055","date":"2026-05-20","week":"三","front":["09","10","20","33","35"],"back":["04","11"],"p1":{"count":4,"money":10000000},"p2":{"count":83,"money":232027}},{"code":"26054","date":"2026-05-18","week":"一","front":["02","06","14","22","24"],"back":["08","11"],"p1":{"count":13,"money":6280305},"p2":{"count":101,"money":187940}},{"code":"26053","date":"2026-05-16","week":"六","front":["02","09","14","20","31"],"back":["05","09"],"p1":{"count":14,"money":4901960},"p2":{"count":133,"money":97647}},{"code":"26052","date":"2026-05-13","week":"三","front":["02","03","20","28","33"],"back":["02","12"],"p1":{"count":9,"money":6295115},"p2":{"count":201,"money":63296}},{"code":"26051","date":"2026-05-11","week":"一","front":["13","18","28","32","33"],"back":["02","11"],"p1":{"count":4,"money":9612284},"p2":{"count":135,"money":137851}},{"code":"26050","date":"2026-05-09","week":"六","front":["06","10","14","23","33"],"back":["08","10"],"p1":{"count":6,"money":8052622},"p2":{"count":97,"money":215818}},{"code":"26049","date":"2026-05-06","week":"三","front":["01","06","14","15","17"],"back":["02","03"],"p1":{"count":6,"money":7126897},"p2":{"count":69,"money":183708}},{"code":"26048","date":"2026-05-04","week":"一","front":["11","17","20","23","35"],"back":["01","10"],"p1":{"count":7,"money":6806380},"p2":{"count":87,"money":175445}},{"code":"26047","date":"2026-05-02","week":"六","front":["09","20","21","23","28"],"back":["06","11"],"p1":{"count":5,"money":7415209},"p2":{"count":97,"money":139095}},{"code":"26046","date":"2026-04-29","week":"三","front":["01","13","18","27","33"],"back":["04","07"],"p1":{"count":6,"money":6930508},"p2":{"count":84,"money":201825}},{"code":"26045","date":"2026-04-27","week":"一","front":["01","15","21","26","33"],"back":["04","07"],"p1":{"count":7,"money":6675078},"p2":{"count":86,"money":181174}},{"code":"26044","date":"2026-04-25","week":"六","front":["03","08","22","26","29"],"back":["07","10"],"p1":{"count":8,"money":6329954},"p2":{"count":168,"money":58053}},{"code":"26043","date":"2026-04-22","week":"三","front":["08","12","14","19","22"],"back":["11","12"],"p1":{"count":1,"money":10000000},"p2":{"count":86,"money":169385}},{"code":"26042","date":"2026-04-20","week":"一","front":["02","07","13","19","24"],"back":["03","08"],"p1":{"count":5,"money":7688311},"p2":{"count":260,"money":53840}},{"code":"26041","date":"2026-04-18","week":"六","front":["24","25","27","29","34"],"back":["02","06"],"p1":{"count":6,"money":8170700},"p2":{"count":94,"money":230708}},{"code":"26040","date":"2026-04-15","week":"三","front":["06","12","13","21","34"],"back":["08","09"],"p1":{"count":6,"money":7492423},"p2":{"count":118,"money":125628}},{"code":"26039","date":"2026-04-13","week":"一","front":["09","11","20","26","27"],"back":["06","09"],"p1":{"count":11,"money":5717710},"p2":{"count":175,"money":50714}},{"code":"26038","date":"2026-04-11","week":"六","front":["08","17","21","33","35"],"back":["06","07"],"p1":{"count":2,"money":10000000},"p2":{"count":174,"money":92288}},{"code":"26037","date":"2026-04-08","week":"三","front":["07","12","13","28","32"],"back":["06","08"],"p1":{"count":5,"money":8402519},"p2":{"count":133,"money":119807}},{"code":"26036","date":"2026-04-06","week":"一","front":["04","07","16","26","32"],"back":["05","08"],"p1":{"count":9,"money":6291520},"p2":{"count":114,"money":106441}},{"code":"26035","date":"2026-04-04","week":"六","front":["02","22","30","33","34"],"back":["08","12"],"p1":{"count":11,"money":6715340},"p2":{"count":91,"money":180483}},{"code":"26034","date":"2026-04-01","week":"三","front":["11","12","25","26","27"],"back":["08","11"],"p1":{"count":6,"money":6785341},"p2":{"count":215,"money":59275}},{"code":"26033","date":"2026-03-30","week":"一","front":["03","05","07","09","18"],"back":["02","10"],"p1":{"count":12,"money":5620374},"p2":{"count":250,"money":29556}},{"code":"26032","date":"2026-03-28","week":"六","front":["03","04","19","26","32"],"back":["01","12"],"p1":{"count":6,"money":8149825},"p2":{"count":141,"money":117451}},{"code":"26031","date":"2026-03-25","week":"三","front":["06","08","22","29","34"],"back":["05","07"],"p1":{"count":9,"money":7576500},"p2":{"count":82,"money":285678}},{"code":"26030","date":"2026-03-23","week":"一","front":["02","13","22","28","34"],"back":["05","12"],"p1":{"count":8,"money":7605701},"p2":{"count":97,"money":179985}},{"code":"26029","date":"2026-03-21","week":"六","front":["03","05","17","33","35"],"back":["05","07"],"p1":{"count":6,"money":7877022},"p2":{"count":144,"money":115812}},{"code":"26028","date":"2026-03-18","week":"三","front":["15","27","29","30","34"],"back":["01","10"],"p1":{"count":1,"money":10000000},"p2":{"count":63,"money":280368}},{"code":"26027","date":"2026-03-16","week":"一","front":["09","10","11","12","16"],"back":["01","11"],"p1":{"count":7,"money":6985349},"p2":{"count":166,"money":86031}},{"code":"26026","date":"2026-03-14","week":"六","front":["10","11","22","26","32"],"back":["01","08"],"p1":{"count":3,"money":9638333},"p2":{"count":119,"money":145339}},{"code":"26025","date":"2026-03-11","week":"三","front":["03","15","24","28","29"],"back":["03","07"],"p1":{"count":10,"money":5872341},"p2":{"count":147,"money":62745}},{"code":"26024","date":"2026-03-09","week":"一","front":["02","04","08","10","21"],"back":["09","12"],"p1":{"count":3,"money":9889639},"p2":{"count":138,"money":87504}},{"code":"26023","date":"2026-03-07","week":"六","front":["09","25","26","27","28"],"back":["01","08"],"p1":{"count":6,"money":7177297},"p2":{"count":109,"money":138525}},{"code":"26022","date":"2026-03-04","week":"三","front":["05","09","10","18","26"],"back":["05","06"],"p1":{"count":10,"money":5746008},"p2":{"count":261,"money":27678}},{"code":"26021","date":"2026-03-02","week":"一","front":["05","08","12","14","17"],"back":["04","05"],"p1":{"count":7,"money":6463717},"p2":{"count":161,"money":73420}},{"code":"26020","date":"2026-02-28","week":"六","front":["01","10","21","23","29"],"back":["10","12"],"p1":{"count":3,"money":10000000},"p2":{"count":77,"money":219344}},{"code":"26019","date":"2026-02-25","week":"三","front":["12","13","14","16","31"],"back":["04","12"],"p1":{"count":8,"money":7528120},"p2":{"count":72,"money":275339}},{"code":"26018","date":"2026-02-11","week":"三","front":["09","11","19","30","35"],"back":["01","12"],"p1":{"count":7,"money":6692203},"p2":{"count":86,"money":208790}},{"code":"26017","date":"2026-02-09","week":"一","front":["04","05","10","23","31"],"back":["07","12"],"p1":{"count":6,"money":7044236},"p2":{"count":104,"money":141471}},{"code":"26016","date":"2026-02-07","week":"六","front":["08","09","12","19","24"],"back":["01","06"],"p1":{"count":13,"money":5925957},"p2":{"count":243,"money":50303}},{"code":"26015","date":"2026-02-04","week":"三","front":["01","04","10","13","17"],"back":["03","11"],"p1":{"count":4,"money":9339920},"p2":{"count":98,"money":175350}},{"code":"26014","date":"2026-02-02","week":"一","front":["16","18","23","34","35"],"back":["01","06"],"p1":{"count":2,"money":10000000},"p2":{"count":81,"money":242159}},{"code":"26013","date":"2026-01-31","week":"六","front":["03","05","06","23","26"],"back":["01","04"],"p1":{"count":10,"money":6149358},"p2":{"count":409,"money":26110}},{"code":"26012","date":"2026-01-28","week":"三","front":["01","02","09","22","25"],"back":["01","06"],"p1":{"count":5,"money":6986204},"p2":{"count":131,"money":102374}},{"code":"26011","date":"2026-01-26","week":"一","front":["14","21","23","29","33"],"back":["02","10"],"p1":{"count":3,"money":10000000},"p2":{"count":74,"money":238777}},{"code":"26010","date":"2026-01-24","week":"六","front":["02","03","13","18","26"],"back":["02","09"],"p1":{"count":4,"money":7802471},"p2":{"count":182,"money":80971}},{"code":"26009","date":"2026-01-21","week":"三","front":["05","12","13","14","33"],"back":["05","08"],"p1":{"count":5,"money":7330817},"p2":{"count":144,"money":81886}},{"code":"26008","date":"2026-01-19","week":"一","front":["03","06","17","21","33"],"back":["05","11"],"p1":{"count":4,"money":7691274},"p2":{"count":151,"money":80101}},{"code":"26007","date":"2026-01-17","week":"六","front":["01","03","13","20","26"],"back":["03","10"],"p1":{"count":18,"money":5482790},"p2":{"count":213,"money":47028}},{"code":"26006","date":"2026-01-14","week":"三","front":["05","12","18","23","35"],"back":["06","12"],"p1":{"count":8,"money":6674129},"p2":{"count":217,"money":61900}}];
+
+// 数据来源（优先级从高到低）：
+//  1) 大乐透云函数 URL（腾讯云实时抓取中体彩/500，带跨域头，打开网页即最新一期）
+//  2) 同源 data.json（静态提交的真实数据，作为二级兜底）
+//  3) 下方内置快照 FALLBACK（离线兜底，最近120期真实数据）
+
+const PRIMES = new Set([2,3,5,7,11,13,17,19,23,29,31]);
+let TREND = null;
+let HISTORY = [];
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2200);
+}
+function money(m){ return m ? '¥'+Number(m).toLocaleString() : '-'; }
+function ball(n, type){ return '<span class="ball '+type+'">'+String(n).padStart(2,'0')+'</span>'; }
+function balls(front, back){
+  const backs = Array.isArray(back)? back : [back];
+  const plus = '<span class="ball plus">+</span>';
+  return front.map(n=>ball(n,'red')).join('') + plus + backs.map(n=>ball(n,'blue')).join('');
+}
+
+/* ---------- 模块1：今日开奖 ---------- */
+function renderToday(d){
+  const el = document.getElementById('today-body');
+  if(!d){ el.innerHTML='<p class="err">数据加载失败</p>'; return; }
+  el.innerHTML =
+    '<div class="card">'+
+      '<div class="issue-head">第 '+d.code+' 期 · '+d.date+(d.week?'（周'+d.week+'）':'')+'</div>'+
+      '<div class="balls-row big">'+balls(d.front,d.back)+'</div>'+
+      '<div class="prize">'+
+        '<div><span class="lab">一等奖</span>'+d.p1.count+' 注<br>'+money(d.p1.money)+'</div>'+
+        '<div><span class="lab">二等奖</span>'+d.p2.count+' 注<br>'+money(d.p2.money)+'</div>'+
+      '</div>'+
+    '</div>';
+}
+
+/* ---------- 模块2：往期开奖 ---------- */
+function renderHistory(list, filter){
+  HISTORY = list;
+  const el = document.getElementById('history-body');
+  const f = (filter||'').trim();
+  const shown = list.filter(x=>!f || x.code.indexOf(f)>=0);
+  const rows = shown.map(x=>
+    '<tr><td>'+x.code+'</td><td>'+x.date+'</td>'+
+    '<td class="balls-cell">'+balls(x.front,x.back)+'</td>'+
+    '<td>'+x.p1.count+'注<br>'+money(x.p1.money)+'</td>'+
+    '<td>'+x.p2.count+'注<br>'+money(x.p2.money)+'</td></tr>'
+  ).join('');
+  el.innerHTML =
+    '<div class="card">'+
+      '<div class="search"><input id="hist-search" placeholder="输入期号筛选，如 261" value="'+f+'">'+
+      '<button onclick="onSearch()">查询</button></div>'+
+      '<div class="table-wrap"><table><thead><tr><th>期号</th><th>日期</th><th>开奖号码</th>'+
+      '<th>一等奖</th><th>二等奖</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<div class="cnt">共 '+list.length+' 期'+(f?'，筛选 '+shown.length+' 期':'')+'</div>'+
+    '</div>';
+}
+function onSearch(){
+  const v = document.getElementById('hist-search').value;
+  renderHistory(HISTORY, v);
+}
+
+/* ---------- 模块3：预测走势（统计 + 推荐） ---------- */
+function computeTrend(list){
+  const arr = list.slice().reverse(); // 旧→新
+  const N = arr.length;
+  const frontFreq = new Array(36).fill(0), backFreq = new Array(13).fill(0);
+  const frontMiss  = new Array(36).fill(0), backMiss  = new Array(13).fill(0);
+  const frontRecent = new Array(36).fill(0), backRecent = new Array(13).fill(0);
+  const recent = arr.slice(-10);
+  recent.forEach(d=>{
+    d.front.map(Number).forEach(n=>frontRecent[n]++);
+    d.back.map(Number).forEach(n=>backRecent[n]++);
+  });
+  for(let i=0;i<N;i++){
+    const fronts = arr[i].front.map(Number);
+    const back = arr[i].back.map(Number);
+    fronts.forEach(n=>frontFreq[n]++); back.forEach(n=>backFreq[n]++);
+    for(let n=1;n<=35;n++) frontMiss[n]++;
+    fronts.forEach(n=>frontMiss[n]=0);
+    for(let n=1;n<=12;n++) backMiss[n]++;
+    back.forEach(n=>backMiss[n]=0);
+  }
+  const frontScore = n => frontFreq[n]*1.0 + Math.min(frontMiss[n],20)*0.6 + frontRecent[n]*2.2;
+  const backScore  = n => backFreq[n]*1.0 + Math.min(backMiss[n],20)*0.6 + backRecent[n]*2.2;
+  const frontRank=[], backRank=[];
+  for(let n=1;n<=35;n++) frontRank.push({n,score:frontScore(n),freq:frontFreq[n],miss:frontMiss[n]});
+  for(let n=1;n<=12;n++) backRank.push({n,score:backScore(n),freq:backFreq[n],miss:backMiss[n]});
+  frontRank.sort((a,b)=>b.score-a.score);
+  backRank.sort((a,b)=>b.score-a.score);
+  const recommend = {
+    front: frontRank.slice(0,5).map(x=>x.n).sort((a,b)=>a-b),
+    back: backRank.slice(0,2).map(x=>x.n).sort((a,b)=>a-b)
+  };
+  return {recommend, frontRank, backRank, count:N, dims:computeDimensions(arr)};
+}
+
+function computeDimensions(arr){
+  const N = arr.length;
+  const sizeR=[0,0], parR=[0,0], zhR=[0,0], d012=[0,0,0], zone=[0,0,0];
+  const tail=new Array(10).fill(0);
+  const sumArr=[], acArr=[], spanArr=[], tailSum=[];
+  let conn=0, rep=0;
+  const week={};
+  for(let i=0;i<N;i++){
+    const fronts = arr[i].front.map(Number).sort((a,b)=>a-b);
+    const back = arr[i].back.map(Number);
+    let small=0,big=0,odd=0,even=0,p=0,c=0;
+    fronts.forEach(n=>{
+      if(n<=17)small++; else big++;
+      if(n%2)odd++; else even++;
+      if(PRIMES.has(n))p++; else c++;
+      d012[n%3]++; tail[n%10]++;
+      if(n<=12)zone[0]++; else if(n<=23)zone[1]++; else zone[2]++;
+    });
+    sizeR[0]+=small; sizeR[1]+=big; parR[0]+=odd; parR[1]+=even; zhR[0]+=p; zhR[1]+=c;
+    const sum = fronts.reduce((a,b)=>a+b,0); sumArr.push(sum);
+    const diffs=new Set();
+    for(let a=0;a<5;a++)for(let b=a+1;b<5;b++)diffs.add(Math.abs(fronts[a]-fronts[b]));
+    acArr.push(diffs.size-4);
+    spanArr.push(fronts[4]-fronts[0]);
+    tailSum.push(sum%10);
+    let cn=0; for(let k=1;k<5;k++) if(fronts[k]-fronts[k-1]===1) cn++;
+    if(cn>0) conn++;
+    if(i>0){ const prev=new Set(arr[i-1].front.map(Number)); let rp=0; fronts.forEach(n=>{if(prev.has(n))rp++;}); if(rp>0) rep++; }
+    const w=arr[i].week||''; week[w]=(week[w]||0)+1;
+  }
+  const avg=a=>a.length? a.reduce((x,y)=>x+y,0)/a.length:0;
+  return {
+    sizeAvg:[ (sizeR[0]/N).toFixed(2),(sizeR[1]/N).toFixed(2) ],
+    parAvg:[ (parR[0]/N).toFixed(2),(parR[1]/N).toFixed(2) ],
+    zhAvg:[ (zhR[0]/N).toFixed(2),(zhR[1]/N).toFixed(2) ],
+    d012, zone,
+    avgSum: avg(sumArr).toFixed(1), lastSum: sumArr[sumArr.length-1],
+    avgAC: avg(acArr).toFixed(2), lastAC: acArr[acArr.length-1],
+    avgSpan: avg(spanArr).toFixed(1), lastSpan: spanArr[spanArr.length-1],
+    tail,
+    connRate:(conn/N*100).toFixed(0), repeatRate:(rep/N*100).toFixed(0),
+    week
+  };
+}
+
+function renderTrend(t){
+  const el = document.getElementById('trend-body');
+  const d = t.dims;
+  const maxFront = Math.max(...t.frontRank.slice(0,10).map(x=>x.score));
+  const maxBack = Math.max(...t.backRank.slice(0,5).map(x=>x.score));
+  const frontBars = t.frontRank.slice(0,10).map(x=>
+    '<div class="vote-row"><span class="num">'+String(x.n).padStart(2,'0')+'</span>'+
+    '<span class="vote-fill"><i style="width:'+(x.score/maxFront*100).toFixed(0)+'%"></i></span>'+
+    '<span style="width:74px;text-align:right;color:#8a8f99">频'+x.freq+'/漏'+x.miss+'</span></div>').join('');
+  const backBars = t.backRank.slice(0,5).map(x=>
+    '<div class="vote-row"><span class="num">'+String(x.n).padStart(2,'0')+'</span>'+
+    '<span class="vote-fill"><i style="width:'+(x.score/maxBack*100).toFixed(0)+'%"></i></span>'+
+    '<span style="width:74px;text-align:right;color:#8a8f99">频'+x.freq+'/漏'+x.miss+'</span></div>').join('');
+
+  const frontMissTop = t.frontRank.slice().sort((a,b)=>b.miss-a.miss).slice(0,8)
+    .map(x=>'<span class="pill">'+String(x.n).padStart(2,'0')+' 漏'+x.miss+'</span>').join('');
+  const backMissTop = t.backRank.slice().sort((a,b)=>b.miss-a.miss).slice(0,5)
+    .map(x=>'<span class="pill">'+String(x.n).padStart(2,'0')+' 漏'+x.miss+'</span>').join('');
+
+  const tailBars = d.tail.map((v,i)=>
+    '<div class="vote-row"><span class="num">'+i+'</span>'+
+    '<span class="vote-fill"><i style="width:'+(v/Math.max(...d.tail)*100).toFixed(0)+'%"></i></span>'+
+    '<span style="width:42px;text-align:right;color:#8a8f99">'+v+'</span></div>').join('');
+
+  const weekKeys = Object.keys(d.week);
+  const weekHtml = weekKeys.length ? weekKeys.map(w=>'<span class="pill">周'+w+'：'+d.week[w]+'期</span>').join('') : '<span class="pill">—</span>';
+
+  el.innerHTML =
+    '<div class="card">'+
+      '<div class="reco-title">综合统计推荐（历史 <b>'+t.count+'</b> 期：频率+遗漏回补+近期热度）</div>'+
+      '<div class="balls-row big">'+balls(t.recommend.front, t.recommend.back)+'</div>'+
+      '<div class="cnt">红色球=推荐前区5个 · 蓝色球=推荐后区2个 · 仅供参考</div>'+
+    '</div>'+
+    '<div class="card"><div class="dims">'+
+      '<div class="dim full"><h4>前区得分 Top10（推荐依据）</h4>'+frontBars+'</div>'+
+      '<div class="dim full"><h4>后区得分 Top5</h4>'+backBars+'</div>'+
+      '<div class="dim"><h4>前区大小（小1-17 / 大18-35）</h4><div class="v">小 '+d.sizeAvg[0]+' · 大 '+d.sizeAvg[1]+'</div></div>'+
+      '<div class="dim"><h4>前区奇偶</h4><div class="v">奇 '+d.parAvg[0]+' · 偶 '+d.parAvg[1]+'</div></div>'+
+      '<div class="dim"><h4>前区质合</h4><div class="v">质 '+d.zhAvg[0]+' · 合 '+d.zhAvg[1]+'</div></div>'+
+      '<div class="dim"><h4>前区 012 路</h4><div class="v">0路 '+d.d012[0]+' · 1路 '+d.d012[1]+' · 2路 '+d.d012[2]+'</div></div>'+
+      '<div class="dim"><h4>区间分布（1-12/13-23/24-35）</h4><div class="v">'+d.zone[0]+' / '+d.zone[1]+' / '+d.zone[2]+'</div></div>'+
+      '<div class="dim"><h4>和值（均值 / 最近）</h4><div class="v">'+d.avgSum+' / '+d.lastSum+'</div></div>'+
+      '<div class="dim"><h4>AC值（均值 / 最近）</h4><div class="v">'+d.avgAC+' / '+d.lastAC+'</div></div>'+
+      '<div class="dim"><h4>跨度（均值 / 最近）</h4><div class="v">'+d.avgSpan+' / '+d.lastSpan+'</div></div>'+
+      '<div class="dim"><h4>连号出现率</h4><div class="v">'+d.connRate+'%</div></div>'+
+      '<div class="dim"><h4>重号出现率</h4><div class="v">'+d.repeatRate+'%</div></div>'+
+      '<div class="dim full"><h4>开奖星期分布</h4><div class="v">'+weekHtml+'</div></div>'+
+      '<div class="dim full"><h4>前区遗漏 Top8（久未出，回补参考）</h4><div class="v">'+frontMissTop+'</div></div>'+
+      '<div class="dim full"><h4>后区遗漏 Top5</h4><div class="v">'+backMissTop+'</div></div>'+
+      '<div class="dim full"><h4>尾数分布（0-9）</h4>'+tailBars+'</div>'+
+    '</div></div>'+
+    '<div class="warn">走势维度（大小/奇偶/质合/012路/和值/AC/跨度/区间/尾数/遗漏/连号/重号/周几）均由历史开奖号码本地计算，非抓取第三方图表。</div>';
+}
+
+/* ---------- 模块4：随机预测（纯随机，多玩法） ---------- */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function range(a,b){ const r=[]; for(let i=a;i<=b;i++) r.push(i); return r; }
+function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+function pickFronts(n){ return shuffle(range(1,35)).slice(0,n).sort((x,y)=>x-y); }
+function pickBacks(n){ return shuffle(range(1,12)).slice(0,n).sort((x,y)=>x-y); }
+function C(n,k){ if(k<0||k>n) return 0; let r=1; for(let i=0;i<k;i++) r = r*(n-i)/(i+1); return Math.round(r); }
+
+let randomMode = 'single';
+
+// 大乐透各玩法：gen() 返回 {front:[], back:[], notes, dan?, tuo?, backDan?}
+// 注数规则：单注=前区5+后区2；前区复式 C(F,5)；后区复式 C(B,2)；全复式 C(F,5)*C(B,2)；
+//          前区胆拖 C(tuo,5-d)；后区胆拖 拖码数（C(tuo,1)）
+const DLT_MODES = {
+  single: { name:'单式',   gen(){ const f=pickFronts(5), b=pickBacks(2); return {front:f, back:b, notes:1}; } },
+  frontf: { name:'前区复式', gen(){ const F=randInt(6,12), f=pickFronts(F), b=pickBacks(2); return {front:f, back:b, notes:C(F,5)}; } },
+  backf:  { name:'后区复式', gen(){ const f=pickFronts(5), B=randInt(3,5), b=pickBacks(B); return {front:f, back:b, notes:C(B,2)}; } },
+  allf:   { name:'全复式', gen(){ const F=randInt(6,12), f=pickFronts(F), B=randInt(3,5), b=pickBacks(B); return {front:f, back:b, notes:C(F,5)*C(B,2)}; } },
+  frontdt:{ name:'前区胆拖', gen(){
+      const d=randInt(1,4), F=randInt(5,12), tuo=Math.max(1,F-d);
+      const pool=shuffle(range(1,35));
+      const dan=pool.slice(0,d).sort((x,y)=>x-y);
+      const tuoA=pool.slice(d,d+tuo).sort((x,y)=>x-y);
+      const b=pickBacks(2);
+      return {front:dan.concat(tuoA), back:b, notes:C(tuo,5-d), dan, tuo:tuoA}; } },
+  backdt: { name:'后区胆拖', gen(){
+      const f=pickFronts(5), B=randInt(3,5), bp=shuffle(range(1,12));
+      const dan=bp.slice(0,1);
+      const tuoA=bp.slice(1,B).sort((x,y)=>x-y);
+      return {front:f, back:dan.concat(tuoA), notes:B-1, dan, tuo:tuoA, backDan:true}; } }
+};
+
+function ballN(n, type, isDan){
+  return '<span class="ball '+type+(isDan?' dan':'')+'">'+String(n).padStart(2,'0')+'</span>';
+}
+function renderBalls(front, back, danFront, danBlue){
+  let h = front.map(n=> ballN(n,'red', danFront && danFront.has(n))).join('');
+  h += '<span class="grp-sep"></span>';
+  h += back.map(n=> ballN(n,'blue', danBlue && danBlue.has(n))).join('');
+  return h;
+}
+
+function renderRandom(){
+  const el = document.getElementById('random-body');
+  const mode = DLT_MODES[randomMode];
+  const g = mode.gen();
+  const danFront = g.dan ? new Set(g.dan) : null;
+  const danBlue = g.backDan ? new Set(g.dan) : null;
+  const moneyV = g.notes * 2;
+
+  let desc = '';
+  if(randomMode==='single')      desc = '前区5 + 后区2，标准一注';
+  else if(randomMode==='frontf') desc = '前区 '+g.front.length+' 个 + 后区2，复式共 '+g.notes+' 注';
+  else if(randomMode==='backf')  desc = '前区5 + 后区 '+g.back.length+' 个，复式共 '+g.notes+' 注';
+  else if(randomMode==='allf')   desc = '前区 '+g.front.length+' 个 + 后区 '+g.back.length+' 个，全复式共 '+g.notes+' 注';
+  else if(randomMode==='frontdt')desc = '前区胆码 '+g.dan.length+' + 前区拖码 '+g.tuo.length+'（合计 '+g.front.length+' 前区）+ 后区2，胆拖共 '+g.notes+' 注';
+  else if(randomMode==='backdt') desc = '前区5 + 后区胆码1 + 后区拖码 '+(g.back.length-1)+'，胆拖共 '+g.notes+' 注';
+
+  let html = '<div class="rmodes">';
+  Object.keys(DLT_MODES).forEach(k=>{
+    html += '<button class="rmode'+(k===randomMode?' active':'')+'" data-mode="'+k+'">'+DLT_MODES[k].name+'</button>';
+  });
+  html += '</div>';
+  html += '<div class="card">'+
+      '<div class="reco-title">随机'+mode.name+(g.dan?'（金边为胆码）':'')+'</div>'+
+      '<div class="balls-row big">'+renderBalls(g.front, g.back, danFront, danBlue)+'</div>'+
+      '<div class="cnt">'+desc+' · 共 '+g.notes+' 注 / '+moneyV+' 元</div>'+
+    '</div>'+
+    '<button id="random-again" class="btn-primary">再随机一组</button>'+
+    '<div class="warn">本模块为纯随机娱乐：号码完全随机生成，与历史统计、走势、概率均无关，不保证中奖，不构成任何购彩建议。</div>';
+  el.innerHTML = html;
+  document.getElementById('random-again').addEventListener('click', renderRandom);
+  el.querySelectorAll('.rmode').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ randomMode = btn.dataset.mode; renderRandom(); });
+  });
+}
+
+/* ---------- Tab 切换 ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+    if(b.dataset.tab==='random'){ renderRandom(); }
+  });
+});
+
+/* ---------- 初始化 ---------- */
+function renderAll(list){
+  const newest = list[0];
+  renderToday(newest);
+  renderHistory(list);
+  TREND = computeTrend(list);
+  renderTrend(TREND);
+}
+// 大乐透云函数：腾讯云实时抓取中体彩/500网，返回带跨域头的 JSON（打开网页即最新一期）
+// 部署大乐透云函数（dlt-live）后，把它的「函数 URL」填到下面常量即可启用实时数据；
+// 未部署云函数前留空即可，应用会自动回退到 data.json / 内置 FALLBACK。
+const DLT_SCF_URL = '';
+
+async function loadLive(){
+  if(!DLT_SCF_URL || DLT_SCF_URL.indexOf('REPLACE')===0) throw new Error('no-scf');
+  const ctrl = new AbortController();
+  const tid = setTimeout(()=>ctrl.abort(), 9000);
+  try{
+    const r = await fetch(DLT_SCF_URL, {signal:ctrl.signal, cache:'no-store'});
+    clearTimeout(tid);
+    if(!r.ok) throw new Error('bad');
+    const d = await r.json();
+    if(Array.isArray(d) && d.length) return d;
+    throw new Error('empty');
+  }finally{ clearTimeout(tid); }
+}
+
+(async function init(){
+  let currentList = FALLBACK;      // 内置快照：离线兜底（最近120期真实数据）
+  let src = 'offline';
+  const note = document.getElementById('data-note');
+  const setNote = (s)=>{
+    if(!note || !currentList[0]) return;
+    const tag = s==='live' ? '实时（中体彩云端直连）'
+              : s==='data' ? '本地静态数据（与云端同步）'
+              : '离线内置快照';
+    note.textContent = '数据更新至 '+currentList[0].date+' · '+tag+'（最近'+currentList.length+'期）· 点此刷新';
+  };
+  renderAll(currentList);          // 先用内置快照秒渲染，避免空白
+  setNote('offline');
+  if(note){ note.style.cursor='pointer';
+    note.onclick = ()=>{ note.textContent='刷新中…'; loadLive().then(d=>{ if(d&&d.length){currentList=d; src='live'; renderAll(currentList); setNote('live');} else setNote(src); }).catch(()=>setNote(src)); };
+  }
+  // 后台升级：优先实时云端（腾讯云函数），失败再试同源 data.json
+  try{ const d = await loadLive(); if(d.length){ currentList=d; src='live'; renderAll(currentList); } }
+  catch(e){
+    try{ const r = await fetch('./data.json', {cache:'no-store'});
+      if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.length){ currentList=d; src='data'; renderAll(currentList); } }
+    }catch(_){}
+  }
+  setNote(src);
+})();
+</script>
+<style>#toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;
+  padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;z-index:99;max-width:90%}
+  .data-note{text-align:center;font-size:11px;color:#9aa0a6;padding:10px 12px 18px}
+  .app-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:14px 12px 22px;padding:10px 14px;background:#f5f6f8;border-radius:12px}
+  .app-version{font-size:12px;color:#9aa0a6}
+  .update-btn{flex:0 0 auto;padding:7px 16px;background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;font-size:13px;border-radius:20px;cursor:pointer;user-select:none;box-shadow:0 2px 6px rgba(21,101,192,.25)}
+  .update-btn:active{transform:translateY(1px)}
+  .app-action{display:inline-block;font-size:11px;color:#9aa0a6;border:1px solid var(--line);
+    border-radius:14px;padding:4px 14px;cursor:pointer}
+  .app-action:active{background:#f0f0f3}
+  .update-banner{background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;font-size:13px;
+    padding:10px 14px;display:none;align-items:center;gap:10px;cursor:pointer}
+  .update-banner.show{display:flex}
+  .update-banner .ub-text{flex:1;line-height:1.4}
+  .update-banner .ub-btn{background:#fff;color:#0d47a1;border-radius:14px;padding:5px 12px;
+    font-weight:700;font-size:12px;white-space:nowrap}
+  .update-banner .ub-close{opacity:.85;font-size:18px;padding:0 4px;line-height:1}</style>
+<script>
+// 注册 Service Worker：离线可开、秒开缓存（云函数接口仍实时走网络）
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+}
+</script>
+<script>
+// ===== 检查更新（在线网页模式：比对 GitHub Pages 上的 version.json）=====
+var APP_VERSION = '2026.11.5';      // 当前内置版本，仅首次兜底比对用
+var latestVersion = '';
+function parseVer(v){ return String(v||'').split('.').map(function(n){ return parseInt(n,10)||0; }); }
+function cmpVer(a,b){
+  var A=parseVer(a), B=parseVer(b), n=Math.max(A.length,B.length), i, x, y;
+  for(i=0;i<n;i++){ x=A[i]||0; y=B[i]||0; if(x!==y) return x<y?-1:1; }
+  return 0;
+}
+function showUpdateBanner(latest, note){
+  latestVersion = latest;
+  var banner = document.getElementById('update-banner');
+  document.getElementById('ub-text').textContent = '发现新版本 v'+latest+(note?('：'+note):'')+'，点击立即更新';
+  banner.classList.add('show');
+}
+function doUpdate(){
+  var done = function(){ location.reload(true); };
+  if('caches' in window){
+    caches.keys().then(function(keys){ return Promise.all(keys.map(function(k){ return caches.delete(k); })); })
+      .then(done).catch(done);
+  } else { done(); }
+}
+async function checkUpdate(){
+  try{
+    var r = await fetch('./version.json?t='+Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    var d = await r.json();
+    var latest = d.version;
+    if(!latest) return;
+    var seen = localStorage.getItem('app_seen_version') || APP_VERSION;
+    var dismissed = localStorage.getItem('app_dismissed_version') || '';
+    if(cmpVer(latest, seen) > 0 && cmpVer(latest, dismissed) > 0){ showUpdateBanner(latest, d.note); }
+  }catch(e){ /* 离线或网络失败，忽略 */ }
+}
+document.getElementById('ub-update').onclick = function(e){ e.stopPropagation();
+  localStorage.setItem('app_seen_version', latestVersion || APP_VERSION);
+  localStorage.removeItem('app_dismissed_version');
+  doUpdate(); };
+document.getElementById('ub-close').onclick = function(e){ e.stopPropagation();
+  localStorage.setItem('app_dismissed_version', latestVersion);
+  document.getElementById('update-banner').classList.remove('show'); };
+document.getElementById('update-banner').onclick = function(){ doUpdate(); };
+// 手动「检查更新」按钮：点击后给明确反馈
+async function manualCheckUpdate(btn){
+  var old = btn.textContent;
+  btn.textContent = '检查中…';
+  try{
+    var r = await fetch('./version.json?t='+Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('no');
+    var d = await r.json();
+    var latest = d.version;
+    if(!latest) throw new Error('empty');
+    var seen = localStorage.getItem('app_seen_version') || APP_VERSION;
+    var dismissed = localStorage.getItem('app_dismissed_version') || '';
+    if(cmpVer(latest, seen) > 0 && cmpVer(latest, dismissed) > 0){
+      showUpdateBanner(latest, d.note);
+      btn.textContent = '发现新版本';
+    } else {
+      localStorage.setItem('app_seen_version', latest);
+      btn.textContent = '已是最新 v'+latest;
+      var ve = document.getElementById('app-version'); if(ve) ve.textContent = '当前版本 v'+latest;
+    }
+  }catch(e){
+    btn.textContent = '检查失败（可能离线）';
+  }
+  setTimeout(function(){ btn.textContent = old; }, 2500);
+}
+document.getElementById('btn-check-update').onclick = function(){ manualCheckUpdate(this); };
+// 首屏渲染后：刷新版本号标签 + 延迟自动检查，避免抢资源
+function refreshVersionLabel(){
+  var el = document.getElementById('app-version');
+  if(!el) return;
+  fetch('./version.json?t='+Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d){ if(d && d.version) el.textContent = '当前版本 v'+d.version; })
+    .catch(function(){});
+}
+window.addEventListener('load', function(){ refreshVersionLabel(); setTimeout(checkUpdate, 3000); });
+</script>
+</body>
+</html>
