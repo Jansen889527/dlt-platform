@@ -10,7 +10,8 @@
 部署步骤（腾讯云控制台）：
   1. 函数服务 → 新建 → 运行环境 Python 3.10 → 上传/粘贴本文件，入口函数填 main_handler
   2. 触发管理 → 创建「函数 URL」→ 启用，认证方式选「不认证」
-  3. 复制函数 URL，填到前端 index.html 顶部常量 DLT_SCF_URL
+  3. 复制函数 URL，填到前端 index.html 的常量 DLT_SCF_URL，再推送 GitHub Pages
+     （网页热更新即可，不用重装 APK；用户 App 点「检查更新」即生效）
   4. 函数配置里把「响应体透传」打开；本函数已自带跨域头（Allow-Origin=*），函数 URL 仍需允许 OPTIONS 预检
 说明：
   - 数据源 500 彩票网 history.php 为公开页面，已带浏览器 UA + Referer 抓取，解析 <tbody id=tdata> 表格

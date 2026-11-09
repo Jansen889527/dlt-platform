@@ -78,6 +78,7 @@ def main():
     vinfo = json.loads(vp.read_text(encoding="utf-8"))
     new_ver = bump(vinfo.get("version", "2026.11.5"))
     vinfo["version"] = new_ver
+    vinfo["note"] = "开奖数据同步至 %s（500彩票网）" % new_code
     vinfo["updatedAt"] = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     vp.write_text(json.dumps(vinfo, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
