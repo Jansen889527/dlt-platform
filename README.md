@@ -106,6 +106,8 @@ git push -u origin main
 
 也可以随时在仓库 `Actions` 页手动点 `Run workflow`，或在本机跑 `python3 scripts/update_dlt_data.py`。
 
+> ✅ **2026-11-09 已实测通过**：GitHub 境外 runner 能正常抓取 500 彩票网；用隔离分支模拟「出现新一期」后，定时任务自动完成了 抓取 → 更新 `data.json` / 内置快照 → 自动 bump 版本号 → `git push` → 显式触发 Pages 重新部署（HTTP 201），所有步骤 success。定时任务还会在推送后显式请求一次 Pages 构建，避免内置令牌推送不触发部署。
+
 **可选升级成秒级实时（与双色球完全一致）**：部署下面的腾讯云函数后，网页每次打开都直接由服务端实时抓取，不再等定时任务。不部署也完全够用，数据最多滞后到开奖当晚。
 
 1. 浏览器打开 https://console.cloud.tencent.com/scf （腾讯云函数控制台），登录。
