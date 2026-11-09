@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  pages: write                  # 允许显式触发 Pages 重新部署
 
 concurrency:
   group: update-dlt-data
@@ -36,14 +37,34 @@ jobs:
         run: python3 scripts/update_dlt_data.py
 
       - name: 有新开奖则提交并推送
+        id: sync
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
             echo "::notice::没有新开奖，跳过提交"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git commit -m "chore: 自动同步大乐透开奖数据"
           git push
-          echo "::notice::已推送，GitHub Pages 稍后自动部署"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::已推送，等待 Pages 部署"
+
+      # GITHUB_TOKEN 发起的 push 不保证触发 Pages 构建，显式请求一次。
+      # 若 GitHub 已自动开始构建，接口会返回冲突，忽略即可。
+      - name: 触发 GitHub Pages 重新部署
+        if: steps.sync.outputs.pushed == 'true'
+        run: |
+          CODE=$(curl -sS -o /tmp/pages_build.json -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/pages/builds")
+          echo "Pages build API: HTTP $CODE"
+          if [ "$CODE" = "201" ] || [ "$CODE" = "204" ]; then
+            echo "::notice::已显式触发 Pages 重新部署"
+          else
+            echo "::notice::Pages 可能已自动构建或正在构建中，跳过"
+          fi
