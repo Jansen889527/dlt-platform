@@ -1,8 +1,10 @@
 // 大乐透工作台 Service Worker
 // 策略：HTML/导航请求 network-first（保证在线更新即时生效），其余静态资源 cache-first 兜底
-const CACHE = 'dlt-v3';
+const CACHE = 'dlt-v4';
+// 开奖数据 data.json 与 version.json 不入缓存：每次请求都走网络，保证刷新即最新
+// 完全离线时页面会用内置 FALLBACK 快照兜底，不依赖 SW 缓存
 const ASSETS = [
-  './', './index.html', './data.json', './manifest.webmanifest',
+  './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'
 ];
 
@@ -22,6 +24,14 @@ self.addEventListener('fetch', e => {
   // 腾讯云函数接口：实时数据，不缓存，直接走网络
   if (url.hostname.includes('tencentscf.com')) return;
   if (e.request.method !== 'GET') return;
+
+  // 开奖数据 / 版本号：永远读线上最新，绝不读缓存（刷新、切页签都能拿到新期）
+  if (url.pathname.endsWith('/data.json') || url.pathname.endsWith('/version.json')) {
+    e.respondWith(
+      fetch(e.request, {cache:'no-store'}).catch(() => new Response('', {status:503, statusText:'offline'}))
+    );
+    return;
+  }
 
   const isNav = e.request.mode === 'navigate'
     || url.pathname.endsWith('/')

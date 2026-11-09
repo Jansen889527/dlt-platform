@@ -417,6 +417,8 @@ document.querySelectorAll('.tabs button').forEach(b=>{
     b.classList.add('active');
     document.getElementById('tab-'+b.dataset.tab).classList.add('active');
     if(b.dataset.tab==='random'){ renderRandom(); }
+    // 每次切换页签都重新拉取一次最新数据（云函数实时 / 自动同步的 data.json）
+    refreshData('tab');
   });
 });
 
@@ -462,34 +464,87 @@ async function fetchFresh(){
   catch(_){ return {list: await loadStatic(), src:'data'}; }
 }
 
-(async function init(){
-  let currentList = FALLBACK;      // 内置快照：离线兜底（最近120期真实数据）
-  let src = 'offline';
-  const note = document.getElementById('data-note');
-  const setNote = (s)=>{
-    if(!note || !currentList[0]) return;
-    const tag = s==='live' ? '实时（云端直连抓取）'
-              : s==='data' ? '云端同步（开奖后自动更新）'
-              : '离线内置快照';
-    note.textContent = '数据更新至 '+currentList[0].date+' · '+tag+'（最近'+currentList.length+'期）· 点此刷新';
-  };
-  renderAll(currentList);          // 先用内置快照秒渲染，避免空白
-  setNote('offline');
-  if(note){ note.style.cursor='pointer';
-    note.onclick = async ()=>{
-      note.textContent='刷新中…';
-      try{ const r = await fetchFresh();
-        if(r.list && r.list.length){ currentList=r.list; src=r.src; renderAll(currentList); }
-      }catch(_){}
-      setNote(src);
-    };
-  }
-  // 后台升级：优先实时云端（腾讯云函数），失败再取同源 data.json（Actions 自动同步）
-  try{ const r = await fetchFresh();
-    if(r.list && r.list.length){ currentList=r.list; src=r.src; renderAll(currentList); }
-  }catch(_){}
+/* ---------- 数据刷新：统一入口 ----------
+   刷新页面 / 切换页签 / 回到前台 / 网络恢复 / 点击页脚，都会真的发一次请求：
+     1) 已配置云函数 DLT_SCF_URL → 实时抓 500 彩票网最新开奖（与双色球一致）
+     2) 未配置 → 拉 GitHub Pages 上由定时任务自动同步的 data.json（带时间戳破 CDN 缓存）
+   部署云函数后只需填 URL，下面这套逻辑无需再改即自动升级为秒级实时。
+*/
+let currentList = FALLBACK;      // 内置快照：离线兜底（最近120期真实数据）
+let src = 'offline';
+let lastFetchAt = 0;
+let refreshing = false;
+const note = document.getElementById('data-note');
+
+function clockText(ts){
+  const d = new Date(ts);
+  return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+}
+function setNote(s){
+  if(!note || !currentList[0]) return;
+  const tag = s==='live' ? '实时（云端直连抓取）'
+            : s==='data' ? '云端同步（开奖后自动更新）'
+            : '离线内置快照';
+  const stamp = lastFetchAt ? ' · 刚查于 '+clockText(lastFetchAt) : '';
+  note.textContent = '数据更新至 '+currentList[0].date+' · '+tag+'（最近'+currentList.length+'期）'+stamp+' · 点此刷新';
+}
+
+// 统一刷新入口。force=true 忽略节流；返回是否成功取到数据
+async function refreshData(reason, force){
+  if(refreshing) return false;                       // 防并发
+  if(!force && reason==='visible' && Date.now()-lastFetchAt < 30000) return false;
+  refreshing = true;
+  const prevSig = JSON.stringify(currentList[0])+'|'+currentList.length;
+  const prevCode = currentList[0] && currentList[0].code;
+  let ok = false;
+  try{
+    const r = await fetchFresh();
+    if(r.list && r.list.length){
+      currentList = r.list;
+      src = r.src;
+      lastFetchAt = Date.now();
+      // 数据没变就不重绘，避免每次切页签闪动
+      if(JSON.stringify(currentList[0])+'|'+currentList.length !== prevSig){
+        renderAll(currentList);
+        if(prevCode && currentList[0].code !== prevCode && reason !== 'boot'){
+          toast('已更新到最新一期 '+currentList[0].code);
+        }
+      }
+      ok = true;
+    }
+  }catch(_){ /* 离线：静静保留现有数据 */ }
+  finally{ refreshing = false; }
   setNote(src);
-})();
+  return ok;
+}
+
+/* ---------- 首屏：先用内置快照秒渲染，再联网刷新一次 ---------- */
+renderAll(currentList);
+setNote('offline');
+refreshData('boot', true);
+
+/* ---------- 自动刷新触发时机 ---------- */
+// 页脚「点此刷新」：强制请求 + 明确反馈
+if(note){
+  note.style.cursor='pointer';
+  note.onclick = async ()=>{
+    note.textContent='刷新中…';
+    const ok = await refreshData('manual', true);
+    setNote(src);
+    if(ok && currentList[0]) toast('已刷新 · 最新 '+currentList[0].code+' 期');
+    else if(!ok) toast('刷新失败（可能离线），已显示现有数据');
+  };
+}
+// 从后台切回前台（App 切走再回来 / 浏览器标签切回），30 秒内不重复请求
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) refreshData('visible');
+});
+// iOS / bfcache 返回：页面不会重新执行脚本，需主动补一次
+window.addEventListener('pageshow', e=>{
+  if(e.persisted) refreshData('pageshow', true);
+});
+// 离线打开后恢复网络
+window.addEventListener('online', ()=> refreshData('online', true));
 </script>
 <style>#toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:rgba(0,0,0,.82);color:#fff;
   padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;z-index:99;max-width:90%}
@@ -516,7 +571,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 // ===== 检查更新（在线网页模式：比对 GitHub Pages 上的 version.json）=====
-var APP_VERSION = '2026.11.6';      // 当前内置版本，仅首次兜底比对用
+var APP_VERSION = '2026.11.7';      // 当前内置版本，仅首次兜底比对用
 var latestVersion = '';
 function parseVer(v){ return String(v||'').split('.').map(function(n){ return parseInt(n,10)||0; }); }
 function cmpVer(a,b){
