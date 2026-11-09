@@ -11,6 +11,10 @@ android-app/android/gradle.properties
 *.keystore
 *.jks
 
+# Python 运行时产物（定时任务 import dlt_live 会生成，勿入库）
+__pycache__/
+*.pyc
+
 # 系统 / 临时
 .DS_Store
 *.log
