@@ -1,6 +1,6 @@
 // 大乐透工作台 Service Worker
 // 策略：HTML/导航请求 network-first（保证在线更新即时生效），其余静态资源 cache-first 兜底
-const CACHE = 'dlt-v5';
+const CACHE = 'dlt-v6';
 // 开奖数据 data.json 与 version.json 不入缓存：每次请求都走网络，保证刷新即最新
 // 完全离线时页面会用内置 FALLBACK 快照兜底，不依赖 SW 缓存
 const ASSETS = [
